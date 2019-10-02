@@ -1,41 +1,77 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
+mod webgl;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
     let canvas = document.get_element_by_id("canvas").unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+    // let contents = fs::read_to_string("./shaders/frag_shader.frag")
+    //     .expect("Something went wrong reading the file");
+
+    // println!("With text:\n{}", contents);
+
+    let vert_shader_src = document
+        .get_element_by_id("vertex-shader")
+        .unwrap()
+        .inner_html();
+
+    let frag_shader_src = document
+        .get_element_by_id("fragment-shader")
+        .unwrap()
+        .inner_html();
 
     let context = canvas
         .get_context("webgl")?
         .unwrap()
         .dyn_into::<WebGlRenderingContext>()?;
 
-    let vert_shader = compile_shader(
-        &context,
-        WebGlRenderingContext::VERTEX_SHADER,
-        r#"
-        attribute vec4 position;
-        void main() {
-            gl_Position = position;
-        }
-    "#,
-    )?;
-    let frag_shader = compile_shader(
-        &context,
-        WebGlRenderingContext::FRAGMENT_SHADER,
-        r#"
-        void main() {
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-    "#,
-    )?;
-    let program = link_program(&context, &vert_shader, &frag_shader)?;
-    context.use_program(Some(&program));
+    let program = webgl::init_program(&context, &vert_shader_src, &frag_shader_src)?;
+    let uniform_loc = context.get_uniform_location(&program, "screenSize");
+    context.uniform2f(
+        uniform_loc.as_ref(),
+        canvas.width() as f32,
+        canvas.height() as f32,
+    );
 
-    let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
+    // let vertices: [f32; 18] = [
+    //     // ESQUERDA
+    //     -0.25, // X
+    //     -0.25, // Y
+    //     0.0, // Z
+
+    //     // DIREITA
+    //     0.25,
+    //     -0.25,
+    //     0.0,
+
+    //     // TOPO
+    //     0.25,
+    //     0.5,
+    //     0.0,
+
+    //     // ESQUERDA
+    //     -0.25,
+    //     -0.25,
+    //     0.0,
+
+    //     //
+    //     -0.25,
+    //     0.5,
+    //     0.0,
+
+    //     0.25,
+    //     0.5,
+    //     0.0
+    // ];
+
+    let vertices: [f32; 3] = [
+        128.0,
+        128.0,
+        128.0,
+    ];
 
     let buffer = context.create_buffer().ok_or("failed to create buffer")?;
     context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
@@ -58,66 +94,26 @@ pub fn start() -> Result<(), JsValue> {
         );
     }
 
-    context.vertex_attrib_pointer_with_i32(0, 3, WebGlRenderingContext::FLOAT, false, 0, 0);
-    context.enable_vertex_attrib_array(0);
+    let loc = context.get_attrib_location(&program, "spritePosition");
+    context.enable_vertex_attrib_array(loc as u32);
+    context.vertex_attrib_pointer_with_i32(
+        loc as u32,
+        2,
+        WebGlRenderingContext::FLOAT,
+        false,
+        0,
+        0,
+    );
+    // context.enable_vertex_attrib_array(0);
 
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
     context.draw_arrays(
-        WebGlRenderingContext::TRIANGLES,
+        WebGlRenderingContext::POINTS,
         0,
         (vertices.len() / 3) as i32,
+        // 1,
     );
     Ok(())
-}
-
-pub fn compile_shader(
-    context: &WebGlRenderingContext,
-    shader_type: u32,
-    source: &str,
-) -> Result<WebGlShader, String> {
-    let shader = context
-        .create_shader(shader_type)
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
-    context.shader_source(&shader, source);
-    context.compile_shader(&shader);
-
-    if context
-        .get_shader_parameter(&shader, WebGlRenderingContext::COMPILE_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        Ok(shader)
-    } else {
-        Err(context
-            .get_shader_info_log(&shader)
-            .unwrap_or_else(|| String::from("Unknown error creating shader")))
-    }
-}
-
-pub fn link_program(
-    context: &WebGlRenderingContext,
-    vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader,
-) -> Result<WebGlProgram, String> {
-    let program = context
-        .create_program()
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
-
-    context.attach_shader(&program, vert_shader);
-    context.attach_shader(&program, frag_shader);
-    context.link_program(&program);
-
-    if context
-        .get_program_parameter(&program, WebGlRenderingContext::LINK_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        Ok(program)
-    } else {
-        Err(context
-            .get_program_info_log(&program)
-            .unwrap_or_else(|| String::from("Unknown error creating program object")))
-    }
 }
