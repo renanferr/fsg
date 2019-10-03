@@ -15,7 +15,7 @@
           vec4(2.0 / screenSize.x, -2.0 / screenSize.y, -1.0, 1.0);
       gl_Position =
           vec4(spritePosition * screenTransform.xy + screenTransform.zw, 0.0, 1.0);
-      gl_PointSize = 16.0;
+      gl_PointSize = 4.0;
     }
   </script>
   <script id="fragment-shader" type="frag">

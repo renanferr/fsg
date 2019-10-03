@@ -1,23 +1,23 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
 
-pub fn init_program(ctx_ptr: &WebGlRenderingContext, vert_src_ptr: &str, frag_src_ptr: &str) -> Result<WebGlProgram, String> {
+pub fn init_program(ctx: &WebGlRenderingContext, vert_src_ptr: &str, frag_src_ptr: &str) -> Result<WebGlProgram, String> {
     let vert_shader = compile_shader(
-        ctx_ptr,
+        ctx,
         WebGlRenderingContext::VERTEX_SHADER,
         vert_src_ptr,
     )?;
     let frag_shader = compile_shader(
-        ctx_ptr,
+        ctx,
         WebGlRenderingContext::FRAGMENT_SHADER,
         frag_src_ptr,
     )?;
-    let program = link_program(ctx_ptr, &vert_shader, &frag_shader)?;
-    ctx_ptr.use_program(Some(&program));
+    let program = link_program(ctx, &vert_shader, &frag_shader)?;
+    ctx.use_program(Some(&program));
 
     return Ok(program)
 }
 
-pub fn compile_shader(
+fn compile_shader(
     context: &WebGlRenderingContext,
     shader_type: u32,
     source: &str,
@@ -41,7 +41,7 @@ pub fn compile_shader(
     }
 }
 
-pub fn link_program(
+fn link_program(
     context: &WebGlRenderingContext,
     vert_shader: &WebGlShader,
     frag_shader: &WebGlShader,

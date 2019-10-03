@@ -1,17 +1,13 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
+use web_sys::{WebGlRenderingContext, HtmlCanvasElement, WebGlProgram};
 mod webgl;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
     let canvas = document.get_element_by_id("canvas").unwrap();
-    let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
-    // let contents = fs::read_to_string("./shaders/frag_shader.frag")
-    //     .expect("Something went wrong reading the file");
-
-    // println!("With text:\n{}", contents);
+    let canvas: HtmlCanvasElement = canvas.dyn_into::<HtmlCanvasElement>()?;
 
     let vert_shader_src = document
         .get_element_by_id("vertex-shader")
@@ -29,48 +25,15 @@ pub fn start() -> Result<(), JsValue> {
         .dyn_into::<WebGlRenderingContext>()?;
 
     let program = webgl::init_program(&context, &vert_shader_src, &frag_shader_src)?;
-    let uniform_loc = context.get_uniform_location(&program, "screenSize");
-    context.uniform2f(
-        uniform_loc.as_ref(),
-        canvas.width() as f32,
-        canvas.height() as f32,
-    );
+    
+    let canvas_width = canvas.width() as f32;
+    let canvas_height = canvas.height() as f32;
 
-    // let vertices: [f32; 18] = [
-    //     // ESQUERDA
-    //     -0.25, // X
-    //     -0.25, // Y
-    //     0.0, // Z
+    set_size_uniforms(&context, &program, (canvas_width, canvas_height));
 
-    //     // DIREITA
-    //     0.25,
-    //     -0.25,
-    //     0.0,
-
-    //     // TOPO
-    //     0.25,
-    //     0.5,
-    //     0.0,
-
-    //     // ESQUERDA
-    //     -0.25,
-    //     -0.25,
-    //     0.0,
-
-    //     //
-    //     -0.25,
-    //     0.5,
-    //     0.0,
-
-    //     0.25,
-    //     0.5,
-    //     0.0
-    // ];
-
-    let vertices: [f32; 3] = [
-        128.0,
-        128.0,
-        128.0,
+    let vertices: [f32; 2] = [
+        (canvas_width / 2.0) as f32,
+        (canvas_height / 2.0) as f32,
     ];
 
     let buffer = context.create_buffer().ok_or("failed to create buffer")?;
@@ -104,16 +67,24 @@ pub fn start() -> Result<(), JsValue> {
         0,
         0,
     );
-    // context.enable_vertex_attrib_array(0);
 
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
-
+    
     context.draw_arrays(
         WebGlRenderingContext::POINTS,
         0,
-        (vertices.len() / 3) as i32,
-        // 1,
+        1,
     );
     Ok(())
+}
+
+fn set_size_uniforms(ctx: &WebGlRenderingContext, program_ptr: &WebGlProgram, size: (f32, f32)) {
+    let uniform_loc = ctx.get_uniform_location(program_ptr, "screenSize");
+    let (width, height) = size;
+    ctx.uniform2f(
+        uniform_loc.as_ref(),
+        width,
+        height,
+    );
 }
