@@ -1,7 +1,8 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{WebGlRenderingContext, HtmlCanvasElement, WebGlProgram};
-mod webgl;
+// mod webgl;
+mod core;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -19,22 +20,28 @@ pub fn start() -> Result<(), JsValue> {
         .unwrap()
         .inner_html();
 
-    let context = canvas
-        .get_context("webgl")?
-        .unwrap()
-        .dyn_into::<WebGlRenderingContext>()?;
+    // let context = canvas
+    //     .get_context("webgl")?
+    //     .unwrap()
+    //     .dyn_into::<WebGlRenderingContext>()?;
 
-    let program = webgl::init_program(&context, &vert_shader_src, &frag_shader_src)?;
+    // let program = webgl::init_program(&context, &vert_shader_src, &frag_shader_src)?;
     
-    let canvas_width = canvas.width() as f32;
-    let canvas_height = canvas.height() as f32;
+    // let canvas_width = canvas.width() as f32;
+    // let canvas_height = canvas.height() as f32;
 
-    set_size_uniforms(&context, &program, (canvas_width, canvas_height));
+    // set_size_uniforms(&context, &program, (canvas_width, canvas_height));
+
+    let scene = core::scene::Scene::new(canvas, vert_shader_src, frag_shader_src)?;
 
     let vertices: [f32; 2] = [
-        (canvas_width / 2.0) as f32,
-        (canvas_height / 2.0) as f32,
+        (scene.width() / 2.0) as f32,
+        (scene.height() / 2.0) as f32,
     ];
+
+    // println!("{:?}", scene);
+
+    // scene.
 
     let buffer = context.create_buffer().ok_or("failed to create buffer")?;
     context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
@@ -68,9 +75,31 @@ pub fn start() -> Result<(), JsValue> {
         0,
     );
 
+
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
-    
+
+    // let icon: web_sys::Element = document.get_element_by_id("icon").unwrap();
+    // let icon: web_sys::HtmlImageElement = icon.dyn_into::<web_sys::HtmlImageElement>()?;
+    // let gl_texture = context.create_texture();
+
+    // context.active_texture(WebGlRenderingContext::TEXTURE0);
+    // context.bind_texture(WebGlRenderingContext::TEXTURE_2D, gl_texture.as_ref());
+
+    // context.tex_image_2d_with_u32_and_u32_and_image(
+    //     WebGlRenderingContext::TEXTURE_2D,
+    //     0,
+    //     WebGlRenderingContext::RGBA as i32,
+    //     WebGlRenderingContext::RGBA,
+    //     WebGlRenderingContext::UNSIGNED_BYTE,
+    //     &icon
+    // )?;
+
+    // context.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);
+
+    // context.enable(WebGlRenderingContext::BLEND);
+    // context.blend_func(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
+
     context.draw_arrays(
         WebGlRenderingContext::POINTS,
         0,
@@ -82,6 +111,7 @@ pub fn start() -> Result<(), JsValue> {
 fn set_size_uniforms(ctx: &WebGlRenderingContext, program_ptr: &WebGlProgram, size: (f32, f32)) {
     let uniform_loc = ctx.get_uniform_location(program_ptr, "screenSize");
     let (width, height) = size;
+
     ctx.uniform2f(
         uniform_loc.as_ref(),
         width,

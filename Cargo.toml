@@ -17,11 +17,15 @@ features = [
   'console',
   'Document',
   'Element',
+  'ImageData',
+  'HtmlElement',
   'HtmlCanvasElement',
+  'HtmlImageElement',
   'WebGlBuffer',
   'WebGlRenderingContext',
   'WebGlUniformLocation',
   'WebGlProgram',
   'WebGlShader',
+  'WebGlTexture',
   'Window'
 ]
