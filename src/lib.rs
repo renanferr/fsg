@@ -1,8 +1,13 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{WebGlRenderingContext, HtmlCanvasElement, WebGlProgram};
-// mod webgl;
-mod core;
+use web_sys::{HtmlCanvasElement, MouseEvent, WebGlProgram, WebGlRenderingContext};
+mod engine;
+
+use engine::particle::Particle;
+use engine::scene::Scene;
+use engine::vec2d::Vec2D;
+use std::cell::Cell;
+use std::rc::Rc;
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
@@ -26,25 +31,55 @@ pub fn start() -> Result<(), JsValue> {
     //     .dyn_into::<WebGlRenderingContext>()?;
 
     // let program = webgl::init_program(&context, &vert_shader_src, &frag_shader_src)?;
-    
     // let canvas_width = canvas.width() as f32;
     // let canvas_height = canvas.height() as f32;
 
     // set_size_uniforms(&context, &program, (canvas_width, canvas_height));
 
-    let scene = core::scene::Scene::new(canvas, vert_shader_src, frag_shader_src)?;
+    let scene = Scene::new(canvas, vert_shader_src, frag_shader_src)?;
 
-    let vertices: [f32; 2] = [
-        (scene.width() / 2.0) as f32,
-        (scene.height() / 2.0) as f32,
-    ];
+        // let scene = scene.clone();
+    // let context = scene.get_context().clone();
+    // let pressed = pressed.clone();
+    // let scene = Rc::new(scene);
+    // let canvas = Rc::new(scene.get_canvas());
+    // {
+    //     let scene = scene.clone();
+    //     let closure = Closure::wrap(Box::new(move |e: MouseEvent| {
+
+    //         // web_sys::console::log_1(&"CLIENT".into());
+    //         // web_sys::console::log_1(&e.client_x().into());
+    //         // web_sys::console::log_1(&e.client_y().into());
+    //         // web_sys::console::log_1(&"\n".into());
+    //         // web_sys::console::log_1(&"OFFSET".into());
+    //         // web_sys::console::log_1(&e.offset_x().into());
+    //         // web_sys::console::log_1(&e.offset_y().into());
+    //     }) as Box<dyn FnMut(_)>);
+        
+    //     canvas.add_event_listener_with_callback("mousedown", closure.as_ref().unchecked_ref())?;
+    //     closure.forget();
+    // }
+    let pos = Vec2D::new(scene.width() / 2.0, scene.height() / 2.0);
+    let dir = Vec2D::new(0.0, -0.1);
+    if scene.add_particle(Particle::new(pos, dir, 1.0)).is_err() {
+        web_sys::console::log_1(&"Error adding particle".into());
+    }
+    
+    scene.draw();
+
+    Ok(())
+
+    // let vertices: [f32; 2] = [
+    //     (scene.width() / 2.0) as f32,
+    //     (scene.height() / 2.0) as f32,
+    // ];
 
     // println!("{:?}", scene);
 
     // scene.
 
-    let buffer = context.create_buffer().ok_or("failed to create buffer")?;
-    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+    // let buffer = context.create_buffer().ok_or("failed to create buffer")?;
+    // context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
 
     // Note that `Float32Array::view` is somewhat dangerous (hence the
     // `unsafe`!). This is creating a raw view into our module's
@@ -54,30 +89,30 @@ pub fn start() -> Result<(), JsValue> {
     //
     // As a result, after `Float32Array::view` we have to be very careful not to
     // do any memory allocations before it's dropped.
-    unsafe {
-        let vert_array = js_sys::Float32Array::view(&vertices);
 
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ARRAY_BUFFER,
-            &vert_array,
-            WebGlRenderingContext::STATIC_DRAW,
-        );
-    }
+    // unsafe {
+    //     let vert_array = js_sys::Float32Array::view(&vertices);
 
-    let loc = context.get_attrib_location(&program, "spritePosition");
-    context.enable_vertex_attrib_array(loc as u32);
-    context.vertex_attrib_pointer_with_i32(
-        loc as u32,
-        2,
-        WebGlRenderingContext::FLOAT,
-        false,
-        0,
-        0,
-    );
+    //     context.buffer_data_with_array_buffer_view(
+    //         WebGlRenderingContext::ARRAY_BUFFER,
+    //         &vert_array,
+    //         WebGlRenderingContext::STATIC_DRAW,
+    //     );
+    // }
 
+    // let loc = context.get_attrib_location(&program, "spritePosition");
+    // context.enable_vertex_attrib_array(loc as u32);
+    // context.vertex_attrib_pointer_with_i32(
+    //     loc as u32,
+    //     2,
+    //     WebGlRenderingContext::FLOAT,
+    //     false,
+    //     0,
+    //     0,
+    // );
 
-    context.clear_color(0.0, 0.0, 0.0, 1.0);
-    context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+    // context.clear_color(0.0, 0.0, 0.0, 1.0);
+    // context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
 
     // let icon: web_sys::Element = document.get_element_by_id("icon").unwrap();
     // let icon: web_sys::HtmlImageElement = icon.dyn_into::<web_sys::HtmlImageElement>()?;
@@ -100,21 +135,16 @@ pub fn start() -> Result<(), JsValue> {
     // context.enable(WebGlRenderingContext::BLEND);
     // context.blend_func(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
 
-    context.draw_arrays(
-        WebGlRenderingContext::POINTS,
-        0,
-        1,
-    );
-    Ok(())
+    // context.draw_arrays(
+    //     WebGlRenderingContext::POINTS,
+    //     0,
+    //     1,
+    // );
 }
 
 fn set_size_uniforms(ctx: &WebGlRenderingContext, program_ptr: &WebGlProgram, size: (f32, f32)) {
     let uniform_loc = ctx.get_uniform_location(program_ptr, "screenSize");
     let (width, height) = size;
 
-    ctx.uniform2f(
-        uniform_loc.as_ref(),
-        width,
-        height,
-    );
+    ctx.uniform2f(uniform_loc.as_ref(), width, height);
 }

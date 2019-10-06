@@ -14,4 +14,8 @@ impl Particle {
             speed: speed
         };
     }
+
+    pub fn get_position(&self) -> Vec2D {
+        return self.pos;
+    }
 }
